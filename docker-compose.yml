@@ -1,3 +1,4 @@
+# O serviço web exige o repositório do front ao lado deste, em ../vi-agendamentos-web.
 name: vi-agendamentos
 
 services:
@@ -9,9 +10,25 @@ services:
       - "5080:8080"
     volumes:
       - .:/src
-      - /src/ViAgendamentos.Api/bin
-      - /src/ViAgendamentos.Api/obj
+      - api-bin:/src/ViAgendamentos.Api/bin
+      - api-obj:/src/ViAgendamentos.Api/obj
       - nuget:/root/.nuget/packages
 
+  web:
+    build:
+      context: ../vi-agendamentos-web
+      dockerfile: Dockerfile.dev
+    ports:
+      - "4200:4200"
+    volumes:
+      - ../vi-agendamentos-web:/app
+      - web-node-modules:/app/node_modules
+    depends_on:
+      - api
+
+# Nomeados, e não anônimos, porque o `down` deixaria um volume anônimo órfão a cada ciclo, com uns 300 MB só de node_modules.
 volumes:
   nuget:
+  api-bin:
+  api-obj:
+  web-node-modules:
