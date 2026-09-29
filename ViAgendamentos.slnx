@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ViAgendamentos.Api.Tests/ViAgendamentos.Api.Tests.csproj" />
+  <Project Path="ViAgendamentos.Api/ViAgendamentos.Api.csproj" />
+</Solution>

@@ -1,0 +1,17 @@
+name: vi-agendamentos
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5080:8080"
+    volumes:
+      - .:/src
+      - /src/ViAgendamentos.Api/bin
+      - /src/ViAgendamentos.Api/obj
+      - nuget:/root/.nuget/packages
+
+volumes:
+  nuget:
