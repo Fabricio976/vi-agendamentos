@@ -2,24 +2,46 @@
 name: vi-agendamentos
 
 services:
+  db:
+    image: postgres:17
+    # O :? faz o compose parar sem o .env; sem ele, subiria um banco com credencial vazia.
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?crie o .env a partir do .env.example}
+      POSTGRES_USER: ${POSTGRES_USER:?crie o .env a partir do .env.example}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?crie o .env a partir do .env.example}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
   api:
     build:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "5080:8080"
+      - "127.0.0.1:5080:8080"
+    environment:
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
     volumes:
       - .:/src
       - api-bin:/src/ViAgendamentos.Api/bin
       - api-obj:/src/ViAgendamentos.Api/obj
       - nuget:/root/.nuget/packages
+    depends_on:
+      db:
+        condition: service_healthy
 
   web:
     build:
       context: ../vi-agendamentos-web
       dockerfile: Dockerfile.dev
     ports:
-      - "4200:4200"
+      - "127.0.0.1:4200:4200"
     volumes:
       - ../vi-agendamentos-web:/app
       - web-node-modules:/app/node_modules
@@ -32,3 +54,4 @@ volumes:
   api-bin:
   api-obj:
   web-node-modules:
+  db-data:

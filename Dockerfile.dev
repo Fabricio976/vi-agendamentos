@@ -9,4 +9,4 @@ ENV ASPNETCORE_ENVIRONMENT=Development \
 
 EXPOSE 8080
 
-CMD ["dotnet", "watch", "run", "--project", "ViAgendamentos.Api", "--no-launch-profile"]
+CMD ["sh", "-c", "dotnet tool restore && exec dotnet watch run --project ViAgendamentos.Api --no-launch-profile"]
