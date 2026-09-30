@@ -32,6 +32,7 @@ public class SalaoTests(PostgresFixture banco)
     [InlineData("11987654321")]
     [InlineData("55 11 98765-4321")]
     [InlineData("5501987654321")]
+    [InlineData("55119876543210")]
     public async Task Phone_fora_do_formato_e_recusado(string phone)
     {
         await using var escopo = banco.NovoEscopo(out var db);

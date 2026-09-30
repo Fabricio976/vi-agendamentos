@@ -13,7 +13,7 @@ using ViAgendamentos.Api.Saloes;
 namespace ViAgendamentos.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260930183939_CriaProfissionais")]
+    [Migration("20260930205317_CriaProfissionais")]
     partial class CriaProfissionais
     {
         /// <inheritdoc />
@@ -90,6 +90,10 @@ namespace ViAgendamentos.Api.Data.Migrations
                     b.ToTable("profissionais", null, t =>
                         {
                             t.HasCheckConstraint("ck_profissionais_email_minusculo", "email = lower(email)");
+
+                            t.HasCheckConstraint("ck_profissionais_email_preenchido", "email <> '' and email = btrim(email)");
+
+                            t.HasCheckConstraint("ck_profissionais_nome_preenchido", "btrim(nome) <> ''");
 
                             t.HasCheckConstraint("ck_profissionais_phone", "phone ~ '^55[1-9]{2}[0-9]{8,9}$'");
                         });

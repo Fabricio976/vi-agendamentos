@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ViAgendamentos.Api;
+using ViAgendamentos.Api.Clientes;
 using ViAgendamentos.Api.Data;
 using ViAgendamentos.Api.Health;
 using ViAgendamentos.Api.Saloes;
@@ -20,8 +21,9 @@ builder.Services
 builder.Services.AddDbContext<AppDbContext>((servicos, opcoes) => opcoes
     .UseNpgsql(
         servicos.GetRequiredService<IOptions<DatabaseOptions>>().Value.Default,
-        npgsql => npgsql.MapEnum<Role>("role"))
+        npgsql => npgsql.MapEnum<Role>("role").MapEnum<Origem>("origem"))
     .UseSnakeCaseNamingConvention());
+builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
 
 var app = builder.Build();
 
@@ -31,5 +33,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapGroup("/api").MapHealth();
+app.MapHealthChecks("/api/health/db");
 
 app.Run();

@@ -36,6 +36,8 @@ namespace ViAgendamentos.Api.Data.Migrations
                 {
                     table.PrimaryKey("pk_profissionais", x => x.id);
                     table.CheckConstraint("ck_profissionais_email_minusculo", "email = lower(email)");
+                    table.CheckConstraint("ck_profissionais_email_preenchido", "email <> '' and email = btrim(email)");
+                    table.CheckConstraint("ck_profissionais_nome_preenchido", "btrim(nome) <> ''");
                     table.CheckConstraint("ck_profissionais_phone", "phone ~ '^55[1-9]{2}[0-9]{8,9}$'");
                     table.ForeignKey(
                         name: "fk_profissionais_salao",

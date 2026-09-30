@@ -99,6 +99,34 @@ public class ProfissionalTests(PostgresFixture banco)
             "email");
     }
 
+    [Fact]
+    public async Task Email_vazio_e_recusado()
+    {
+        await using var escopo = banco.NovoEscopo(out var db);
+        var salao = await Cadastros.SalaoAsync(db);
+        db.Profissionais.Add(NovaProfissional(salao.Id, ""));
+
+        await ErroDoBanco.RestricaoVioladaAsync(
+            () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
+            PostgresErrorCodes.CheckViolation,
+            "ck_profissionais_email_preenchido");
+    }
+
+    [Fact]
+    public async Task Nome_vazio_e_recusado()
+    {
+        await using var escopo = banco.NovoEscopo(out var db);
+        var salao = await Cadastros.SalaoAsync(db);
+        var profissional = NovaProfissional(salao.Id);
+        profissional.Nome = "  ";
+        db.Profissionais.Add(profissional);
+
+        await ErroDoBanco.RestricaoVioladaAsync(
+            () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
+            PostgresErrorCodes.CheckViolation,
+            "ck_profissionais_nome_preenchido");
+    }
+
     // Um caso só: os detalhes da regex compartilhada ficam em SalaoTests.
     [Fact]
     public async Task Phone_fora_do_formato_e_recusado()
