@@ -476,5 +476,5 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
-# Estado local de ferramentas do Claude Code. Spec e planos em .claude/ são versionados.
+# Estado local de ferramentas do Claude Code.
 .claude

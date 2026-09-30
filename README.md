@@ -1,6 +1,6 @@
 # Vi Agendamentos: API
 
-API do app de agendamento para salões. A spec e os planos de cada parte ficam na pasta `.claude/`, local e fora do repositório.
+API do app de agendamento para salões.
 
 ## Ambiente local
 

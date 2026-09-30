@@ -58,7 +58,6 @@ public class HealthTests
         return Assert.IsType<OptionsValidationException>(falha.Exception);
     }
 
-    // Pega: rota ausente, nome escrito no código em vez de lido da configuração e horário em hora local.
     [Fact]
     public async Task Responde_nome_da_configuracao_ambiente_e_horario_em_utc()
     {
@@ -72,7 +71,6 @@ public class HealthTests
             json);
     }
 
-    // Pega: ambiente escrito à mão como "Development".
     [Fact]
     public async Task Em_producao_informa_o_ambiente_production()
     {
@@ -84,7 +82,6 @@ public class HealthTests
         Assert.Contains("\"ambiente\":\"Production\"", json);
     }
 
-    // Pega: validação da configuração removida, que deixaria a API subir com nome vazio ou ausente.
     [Theory]
     [InlineData("")]
     [InlineData(null)]
@@ -95,7 +92,6 @@ public class HealthTests
         Assert.Contains("Nome", erro.Message);
     }
 
-    // Pega: API subindo sem banco configurado, que só falharia na primeira consulta.
     [Fact]
     public void Sem_string_de_conexao_a_api_nao_sobe()
     {

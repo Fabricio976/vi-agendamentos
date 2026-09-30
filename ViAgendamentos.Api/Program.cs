@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using ViAgendamentos.Api;
 using ViAgendamentos.Api.Data;
 using ViAgendamentos.Api.Health;
+using ViAgendamentos.Api.Saloes;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +18,9 @@ builder.Services
     .BindConfiguration(DatabaseOptions.Secao)
     .ValidateDataAnnotations();
 builder.Services.AddDbContext<AppDbContext>((servicos, opcoes) => opcoes
-    .UseNpgsql(servicos.GetRequiredService<IOptions<DatabaseOptions>>().Value.Default)
+    .UseNpgsql(
+        servicos.GetRequiredService<IOptions<DatabaseOptions>>().Value.Default,
+        npgsql => npgsql.MapEnum<Role>("role"))
     .UseSnakeCaseNamingConvention());
 
 var app = builder.Build();

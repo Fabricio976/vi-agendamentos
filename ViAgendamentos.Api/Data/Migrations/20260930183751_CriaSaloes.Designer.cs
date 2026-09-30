@@ -12,7 +12,7 @@ using ViAgendamentos.Api.Data;
 namespace ViAgendamentos.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260930143149_CriaSaloes")]
+    [Migration("20260930183751_CriaSaloes")]
     partial class CriaSaloes
     {
         /// <inheritdoc />
@@ -42,14 +42,14 @@ namespace ViAgendamentos.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("nome");
 
+                    b.Property<string>("Phone")
+                        .HasColumnType("text")
+                        .HasColumnName("phone");
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("slug");
-
-                    b.Property<string>("Whatsapp")
-                        .HasColumnType("text")
-                        .HasColumnName("whatsapp");
 
                     b.HasKey("Id")
                         .HasName("pk_saloes");
@@ -60,7 +60,7 @@ namespace ViAgendamentos.Api.Data.Migrations
 
                     b.ToTable("saloes", null, t =>
                         {
-                            t.HasCheckConstraint("ck_saloes_whatsapp", "whatsapp ~ '^55[1-9]{2}[0-9]{8,9}$'");
+                            t.HasCheckConstraint("ck_saloes_phone", "phone ~ '^55[1-9]{2}[0-9]{8,9}$'");
                         });
                 });
 #pragma warning restore 612, 618

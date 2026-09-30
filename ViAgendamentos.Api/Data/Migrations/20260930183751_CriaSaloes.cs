@@ -19,12 +19,12 @@ namespace ViAgendamentos.Api.Data.Migrations
                     nome = table.Column<string>(type: "text", nullable: false),
                     slug = table.Column<string>(type: "text", nullable: false),
                     fuso = table.Column<string>(type: "text", nullable: false),
-                    whatsapp = table.Column<string>(type: "text", nullable: true)
+                    phone = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_saloes", x => x.id);
-                    table.CheckConstraint("ck_saloes_whatsapp", "whatsapp ~ '^55[1-9]{2}[0-9]{8,9}$'");
+                    table.CheckConstraint("ck_saloes_phone", "phone ~ '^55[1-9]{2}[0-9]{8,9}$'");
                 });
 
             migrationBuilder.CreateIndex(
