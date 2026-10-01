@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +18,9 @@ public sealed class PostgresFixture : IAsyncLifetime
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17").Build();
     private WebApplicationFactory<Program>? _api;
 
+    // O Google da suíte: toda instância da API derivada desta fala com ele.
+    public GoogleFalso Google { get; } = new();
+
     // A API com a configuração real, apontando para o contêiner dos testes.
     public WebApplicationFactory<Program> Api =>
         _api ?? throw new InvalidOperationException("O fixture ainda não subiu o banco.");
@@ -25,15 +30,19 @@ public sealed class PostgresFixture : IAsyncLifetime
         await _postgres.StartAsync();
 
         _api = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
             builder.ConfigureAppConfiguration((_, configuracao) =>
-                configuracao.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["ConnectionStrings:Default"] = _postgres.GetConnectionString(),
-                })));
+                configuracao.AddInMemoryCollection(ConfiguracaoDeTeste.Minima(_postgres.GetConnectionString())));
+            builder.ConfigureTestServices(servicos =>
+                servicos.Configure<GoogleOptions>(
+                    GoogleDefaults.AuthenticationScheme, google => google.BackchannelHttpHandler = Google));
+        });
 
         await using var escopo = NovoEscopo(out var db);
         await db.Database.MigrateAsync();
     }
+
+    public Navegador NovoNavegador() => new(Api);
 
     // Um escopo por uso, como uma requisição da API. Quem chama descarta o escopo.
     public AsyncServiceScope NovoEscopo(out AppDbContext db)

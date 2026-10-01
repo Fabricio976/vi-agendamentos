@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ViAgendamentos.Api.Data;
 using ViAgendamentos.Api.Saloes;
+using ViAgendamentos.Api.Usuarios;
 
 namespace ViAgendamentos.Api.Tests.Data;
 
@@ -17,6 +18,14 @@ public static class Cadastros
         db.Saloes.Add(salao);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         return salao;
+    }
+
+    public static async Task<Usuario> UsuarioAsync(AppDbContext db)
+    {
+        var usuario = new Usuario { Nome = "Pessoa de Teste" };
+        db.Users.Add(usuario);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return usuario;
     }
 
     // Apaga num escopo novo, sem os dependentes carregados: quem decide o que acontece com eles é o banco.

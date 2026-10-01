@@ -10,7 +10,8 @@ public static class HealthEndpoints
     {
         api.MapGet("/health", (IOptions<AppOptions> opcoes, IHostEnvironment ambiente, TimeProvider relogio) =>
                 new StatusDaApi(opcoes.Value.Nome, ambiente.EnvironmentName, relogio.GetUtcNow()))
-            .WithName("GetHealth");
+            .WithName("GetHealth")
+            .AllowAnonymous();
 
         return api;
     }

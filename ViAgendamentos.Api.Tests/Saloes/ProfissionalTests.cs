@@ -7,12 +7,13 @@ namespace ViAgendamentos.Api.Tests.Saloes;
 
 public class ProfissionalTests(PostgresFixture banco)
 {
-    private static Profissional NovaProfissional(Guid salaoId, string? email = null) => new()
+    private static Profissional NovaProfissional(Guid salaoId, string? email = null, Guid? usuarioId = null) => new()
     {
         SalaoId = salaoId,
         Nome = "Vi",
         Email = email ?? Cadastros.EmailUnico(),
         Role = Role.Dona,
+        UsuarioId = usuarioId,
     };
 
     [Fact]
@@ -21,7 +22,7 @@ public class ProfissionalTests(PostgresFixture banco)
         var colunas = await banco.ColunasAsync("profissionais");
 
         Assert.Equal(
-            new[] { "antecedencia_min_minutos", "ativo", "aviso_minutos", "email", "id", "janela_dias", "nome", "passo_minutos", "phone", "role", "salao_id", "sobrenome" },
+            new[] { "antecedencia_min_minutos", "ativo", "aviso_minutos", "email", "id", "janela_dias", "nome", "passo_minutos", "phone", "role", "salao_id", "sobrenome", "usuario_id" },
             colunas);
     }
 
@@ -70,6 +71,28 @@ public class ProfissionalTests(PostgresFixture banco)
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.UniqueViolation,
             "uq_profissionais_salao_email");
+    }
+
+    [Fact]
+    public async Task Mesmo_usuario_duas_vezes_no_mesmo_salao_e_recusado()
+    {
+        await using var escopo = banco.NovoEscopo(out var db);
+        var salao = await Cadastros.SalaoAsync(db);
+        var outroSalao = await Cadastros.SalaoAsync(db);
+        var usuario = await Cadastros.UsuarioAsync(db);
+
+        // Controle positivo: o mesmo usuário em outro salão é permitido.
+        db.Profissionais.AddRange(
+            NovaProfissional(salao.Id, usuarioId: usuario.Id),
+            NovaProfissional(outroSalao.Id, usuarioId: usuario.Id));
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        db.Profissionais.Add(NovaProfissional(salao.Id, usuarioId: usuario.Id));
+
+        await ErroDoBanco.RestricaoVioladaAsync(
+            () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
+            PostgresErrorCodes.UniqueViolation,
+            "uq_profissionais_salao_usuario");
     }
 
     [Fact]

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using ViAgendamentos.Api.Tests.Data;
 
 namespace ViAgendamentos.Api.Tests.Health;
 
@@ -24,7 +25,7 @@ public class HealthTests
 
             builder.ConfigureAppConfiguration((_, configuracao) =>
             {
-                var valores = new Dictionary<string, string?> { ["ConnectionStrings:Default"] = ConexaoNaoUsada };
+                var valores = ConfiguracaoDeTeste.Minima(ConexaoNaoUsada);
                 foreach (var (chave, valor) in ajustes)
                 {
                     valores[chave] = valor;
@@ -45,7 +46,7 @@ public class HealthTests
     // O WebApplicationFactory tem uma corrida quando a API falha ao subir: se o host se descarta antes do
     // StartAsync do teste, chega ObjectDisposedException no lugar do erro real (DeferredHostBuilder no .NET 10).
     // O host registra o erro real no log antes de se descartar, então o teste lê de lá.
-    private static OptionsValidationException ErroAoSubir(string ambiente, params (string Chave, string? Valor)[] ajustes)
+    private static TErro ErroAoSubir<TErro>(string ambiente, params (string Chave, string? Valor)[] ajustes) where TErro : Exception
     {
         var log = new FakeLoggerProvider();
         using var fabrica = Fabrica(ambiente, ajustes);
@@ -55,7 +56,7 @@ public class HealthTests
         Assert.ThrowsAny<Exception>(() => fabricaComLog.CreateClient());
 
         var falha = Assert.Single(log.Collector.GetSnapshot(), registro => registro.Exception is not null);
-        return Assert.IsType<OptionsValidationException>(falha.Exception);
+        return Assert.IsAssignableFrom<TErro>(falha.Exception);
     }
 
     [Fact]
@@ -87,7 +88,7 @@ public class HealthTests
     [InlineData(null)]
     public void Sem_nome_da_aplicacao_a_api_nao_sobe(string? nome)
     {
-        var erro = ErroAoSubir("Development", ("App:Nome", nome));
+        var erro = ErroAoSubir<OptionsValidationException>("Development", ("App:Nome", nome));
 
         Assert.Contains("Nome", erro.Message);
     }
@@ -95,8 +96,16 @@ public class HealthTests
     [Fact]
     public void Sem_string_de_conexao_a_api_nao_sobe()
     {
-        var erro = ErroAoSubir("Production", ("ConnectionStrings:Default", null));
+        var erro = ErroAoSubir<OptionsValidationException>("Production", ("ConnectionStrings:Default", null));
 
         Assert.Contains("Default", erro.Message);
+    }
+
+    [Fact]
+    public void Sem_as_credenciais_do_google_a_api_nao_sobe()
+    {
+        var erro = ErroAoSubir<ArgumentException>("Production", ("Authentication:Google:ClientId", null));
+
+        Assert.Equal("ClientId", erro.ParamName);
     }
 }

@@ -13,7 +13,7 @@ public class ClienteTests(PostgresFixture banco)
     {
         var colunas = await banco.ColunasAsync("clientes");
 
-        Assert.Equal(new[] { "criada_por", "email", "id", "nome", "phone", "salao_id", "sobrenome" }, colunas);
+        Assert.Equal(new[] { "criada_por", "email", "id", "nome", "phone", "salao_id", "sobrenome", "usuario_id" }, colunas);
     }
 
     // Controle positivo das checagens do link e do telefone.
@@ -144,5 +144,27 @@ public class ClienteTests(PostgresFixture banco)
             () => Cadastros.ApagarSalaoAsync(banco, comCliente.Id),
             PostgresErrorCodes.ForeignKeyViolation,
             "fk_clientes_salao");
+    }
+
+    [Fact]
+    public async Task Mesmo_usuario_duas_vezes_no_mesmo_salao_e_recusado()
+    {
+        await using var escopo = banco.NovoEscopo(out var db);
+        var salao = await Cadastros.SalaoAsync(db);
+        var outroSalao = await Cadastros.SalaoAsync(db);
+        var usuario = await Cadastros.UsuarioAsync(db);
+
+        // Controle positivo: o mesmo usuário em outro salão é permitido.
+        db.Clientes.AddRange(
+            new Cliente { SalaoId = salao.Id, Nome = "Ana", CriadaPor = Origem.Profissional, UsuarioId = usuario.Id },
+            new Cliente { SalaoId = outroSalao.Id, Nome = "Ana", CriadaPor = Origem.Profissional, UsuarioId = usuario.Id });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        db.Clientes.Add(new Cliente { SalaoId = salao.Id, Nome = "Ana de novo", CriadaPor = Origem.Profissional, UsuarioId = usuario.Id });
+
+        await ErroDoBanco.RestricaoVioladaAsync(
+            () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
+            PostgresErrorCodes.UniqueViolation,
+            "uq_clientes_salao_usuario");
     }
 }
