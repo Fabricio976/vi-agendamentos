@@ -2,16 +2,17 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using ViAgendamentos.Api.Saloes;
 using ViAgendamentos.Api.Tests.Data;
+using ViAgendamentos.Api.Usuarios;
 
 namespace ViAgendamentos.Api.Tests.Saloes;
 
-public class ProfissionalTests(PostgresFixture banco)
+public class ProfissionalTests(PostgresFixtureTests banco)
 {
     private static Profissional NovaProfissional(Guid salaoId, string? email = null, Guid? usuarioId = null) => new()
     {
         SalaoId = salaoId,
         Nome = "Vi",
-        Email = email ?? Cadastros.EmailUnico(),
+        Email = email ?? CadastrosTests.EmailUnico(),
         Role = Role.Dona,
         UsuarioId = usuarioId,
     };
@@ -30,7 +31,7 @@ public class ProfissionalTests(PostgresFixture banco)
     public async Task Padroes_da_profissional_valem_e_zero_e_gravado_como_zero()
     {
         await using var escrita = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
         var padrao = NovaProfissional(salao.Id);
         var zerada = NovaProfissional(salao.Id);
         zerada.AvisoMinutos = 0;
@@ -57,9 +58,9 @@ public class ProfissionalTests(PostgresFixture banco)
     public async Task Mesmo_email_no_mesmo_salao_e_recusado()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
-        var outroSalao = await Cadastros.SalaoAsync(db);
-        var email = Cadastros.EmailUnico();
+        var salao = await CadastrosTests.SalaoAsync(db);
+        var outroSalao = await CadastrosTests.SalaoAsync(db);
+        var email = CadastrosTests.EmailUnico();
 
         // Controle positivo: o mesmo e-mail em outro salão é permitido.
         db.Profissionais.AddRange(NovaProfissional(salao.Id, email), NovaProfissional(outroSalao.Id, email));
@@ -67,7 +68,7 @@ public class ProfissionalTests(PostgresFixture banco)
 
         db.Profissionais.Add(NovaProfissional(salao.Id, email));
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.UniqueViolation,
             "uq_profissionais_salao_email");
@@ -77,9 +78,9 @@ public class ProfissionalTests(PostgresFixture banco)
     public async Task Mesmo_usuario_duas_vezes_no_mesmo_salao_e_recusado()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
-        var outroSalao = await Cadastros.SalaoAsync(db);
-        var usuario = await Cadastros.UsuarioAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
+        var outroSalao = await CadastrosTests.SalaoAsync(db);
+        var usuario = await CadastrosTests.UsuarioAsync(db);
 
         // Controle positivo: o mesmo usuário em outro salão é permitido.
         db.Profissionais.AddRange(
@@ -89,7 +90,7 @@ public class ProfissionalTests(PostgresFixture banco)
 
         db.Profissionais.Add(NovaProfissional(salao.Id, usuarioId: usuario.Id));
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.UniqueViolation,
             "uq_profissionais_salao_usuario");
@@ -99,10 +100,10 @@ public class ProfissionalTests(PostgresFixture banco)
     public async Task Email_com_maiuscula_e_recusado()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
         db.Profissionais.Add(NovaProfissional(salao.Id, "Maria@Teste.com"));
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.CheckViolation,
             "ck_profissionais_email_minusculo");
@@ -112,12 +113,12 @@ public class ProfissionalTests(PostgresFixture banco)
     public async Task Profissional_sem_email_e_recusada()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
         var semEmail = NovaProfissional(salao.Id);
         semEmail.Email = null;
         db.Profissionais.Add(semEmail);
 
-        await ErroDoBanco.ColunaObrigatoriaAsync(
+        await ErroDoBancoTests.ColunaObrigatoriaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             "email");
     }
@@ -126,10 +127,10 @@ public class ProfissionalTests(PostgresFixture banco)
     public async Task Email_vazio_e_recusado()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
         db.Profissionais.Add(NovaProfissional(salao.Id, ""));
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.CheckViolation,
             "ck_profissionais_email_preenchido");
@@ -139,12 +140,12 @@ public class ProfissionalTests(PostgresFixture banco)
     public async Task Nome_vazio_e_recusado()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
         var profissional = NovaProfissional(salao.Id);
         profissional.Nome = "  ";
         db.Profissionais.Add(profissional);
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.CheckViolation,
             "ck_profissionais_nome_preenchido");
@@ -155,12 +156,12 @@ public class ProfissionalTests(PostgresFixture banco)
     public async Task Phone_fora_do_formato_e_recusado()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
         var profissional = NovaProfissional(salao.Id);
         profissional.Phone = "11987654321";
         db.Profissionais.Add(profissional);
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.CheckViolation,
             "ck_profissionais_phone");
@@ -171,7 +172,7 @@ public class ProfissionalTests(PostgresFixture banco)
     public async Task Phone_no_formato_e_aceito()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
         var profissional = NovaProfissional(salao.Id);
         profissional.Phone = "5511987654321";
         db.Profissionais.Add(profissional);
@@ -183,13 +184,28 @@ public class ProfissionalTests(PostgresFixture banco)
     public async Task Salao_com_profissional_nao_e_apagado()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var comProfissional = await Cadastros.SalaoAsync(db);
+        var comProfissional = await CadastrosTests.SalaoAsync(db);
         db.Profissionais.Add(NovaProfissional(comProfissional.Id));
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        await ErroDoBanco.RestricaoVioladaAsync(
-            () => Cadastros.ApagarSalaoAsync(banco, comProfissional.Id),
+        await ErroDoBancoTests.RestricaoVioladaAsync(
+            () => CadastrosTests.ApagarAsync<Salao>(banco, comProfissional.Id),
             PostgresErrorCodes.ForeignKeyViolation,
             "fk_profissionais_salao");
+    }
+
+    [Fact]
+    public async Task Usuario_ligado_a_uma_profissional_nao_e_apagado()
+    {
+        await using var escopo = banco.NovoEscopo(out var db);
+        var salao = await CadastrosTests.SalaoAsync(db);
+        var usuario = await CadastrosTests.UsuarioAsync(db);
+        db.Profissionais.Add(NovaProfissional(salao.Id, usuarioId: usuario.Id));
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await ErroDoBancoTests.RestricaoVioladaAsync(
+            () => CadastrosTests.ApagarAsync<Usuario>(banco, usuario.Id),
+            PostgresErrorCodes.ForeignKeyViolation,
+            "fk_profissionais_usuario");
     }
 }

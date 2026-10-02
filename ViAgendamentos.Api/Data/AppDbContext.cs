@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -8,11 +9,13 @@ using ViAgendamentos.Api.Usuarios;
 namespace ViAgendamentos.Api.Data;
 
 // IdentityUserContext, e não IdentityDbContext: o papel mora em profissionais.role, e as tabelas de papéis do Identity ficariam sem uso.
-public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityUserContext<Usuario, Guid>(options)
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
+    : IdentityUserContext<Usuario, Guid>(options), IDataProtectionKeyContext
 {
     public DbSet<Salao> Saloes => Set<Salao>();
     public DbSet<Profissional> Profissionais => Set<Profissional>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +31,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         modelBuilder.Entity<IdentityUserClaim<Guid>>().ToTable("usuario_claims");
         modelBuilder.Entity<IdentityUserLogin<Guid>>().ToTable("usuario_logins");
         modelBuilder.Entity<IdentityUserToken<Guid>>().ToTable("usuario_tokens");
+        modelBuilder.Entity<DataProtectionKey>().ToTable("chaves_protecao");
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }

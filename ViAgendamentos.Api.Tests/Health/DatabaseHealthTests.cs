@@ -1,11 +1,9 @@
 using System.Net;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using ViAgendamentos.Api.Tests.Data;
 
 namespace ViAgendamentos.Api.Tests.Health;
 
-public class DatabaseHealthTests(PostgresFixture banco)
+public class DatabaseHealthTests(PostgresFixtureTests banco)
 {
     [Fact]
     public async Task Com_o_banco_no_ar_responde_healthy()
@@ -23,12 +21,7 @@ public class DatabaseHealthTests(PostgresFixture banco)
     {
         // A mesma API do teste acima, só com outro endereço de banco: a porta 1 desta máquina não tem
         // ninguém escutando, então a conexão é recusada na hora.
-        using var fabrica = banco.Api.WithWebHostBuilder(builder =>
-            builder.ConfigureAppConfiguration((_, configuracao) =>
-                configuracao.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["ConnectionStrings:Default"] = "Host=127.0.0.1;Port=1;Database=x;Username=x;Password=x",
-                })));
+        using var fabrica = banco.ApiCom(("ConnectionStrings:Default", "Host=127.0.0.1;Port=1;Database=x;Username=x;Password=x"));
         var cliente = fabrica.CreateClient();
 
         var resposta = await cliente.GetAsync("/api/health/db", TestContext.Current.CancellationToken);

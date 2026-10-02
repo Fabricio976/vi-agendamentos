@@ -12,7 +12,7 @@ C:\Dev\desafio\
 └── vi-agendamentos-web\
 ```
 
-Com o Docker Desktop aberto, na raiz deste repositório, crie o `.env` na primeira vez e suba:
+Com o Docker Desktop aberto, na raiz deste repositório, crie o `.env` na primeira vez, preencha nele as credenciais do Google (ver [Login com Google](#login-com-google)) e suba:
 
 ```powershell
 Copy-Item .env.example .env
@@ -42,6 +42,24 @@ Para criar uma migration depois de mudar o modelo:
 ```powershell
 docker compose exec api dotnet ef migrations add NomeDaMudanca --project ViAgendamentos.Api --output-dir Data/Migrations
 ```
+
+## Login com Google
+
+O login usa um cliente OAuth do Google, criado no projeto `vi-agendamentos` do Google Cloud, em **Google Auth Platform > Clients**. O cliente do ambiente local tem o endereço de retorno `http://localhost:4200/api/signin-google`. Enquanto o app está em modo de teste, só entram as contas listadas em **Audience > Test users**.
+
+O Client ID e o Client secret vão no `.env`, em `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`. Sem eles, o compose para com erro, e a API não sobe.
+
+Abra o front por `http://localhost:4200`, e não por `127.0.0.1`: o Google só devolve a pessoa para o endereço cadastrado.
+
+## Salão piloto
+
+O salão e a dona entram por um comando da própria API, com os dados fora do git. Com o compose no ar:
+
+```powershell
+docker compose exec api dotnet run --no-build --project ViAgendamentos.Api --no-launch-profile -- salao-piloto --SalaoPiloto:Nome="Salão da Vi" --SalaoPiloto:Slug=salao-da-vi --SalaoPiloto:DonaNome=Vi --SalaoPiloto:DonaEmail=dona@gmail.com
+```
+
+A dona ganha usuário no primeiro login com Google, que liga a profissional pelo e-mail.
 
 ## Testes
 

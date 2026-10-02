@@ -1,25 +1,25 @@
 using Microsoft.AspNetCore.Authentication.Google;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Testcontainers.PostgreSql;
 using ViAgendamentos.Api.Data;
 
-[assembly: AssemblyFixture(typeof(ViAgendamentos.Api.Tests.Data.PostgresFixture))]
+[assembly: AssemblyFixture(typeof(ViAgendamentos.Api.Tests.Data.PostgresFixtureTests))]
 
 namespace ViAgendamentos.Api.Tests.Data;
 
 // Um Postgres de verdade para a suíte inteira, na versão do compose e dos projetos novos do Supabase.
-public sealed class PostgresFixture : IAsyncLifetime
+public sealed class PostgresFixtureTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17").Build();
     private WebApplicationFactory<Program>? _api;
 
     // O Google da suíte: toda instância da API derivada desta fala com ele.
-    public GoogleFalso Google { get; } = new();
+    public GoogleFalsoTests Google { get; } = new();
 
     // A API com a configuração real, apontando para o contêiner dos testes.
     public WebApplicationFactory<Program> Api =>
@@ -32,17 +32,26 @@ public sealed class PostgresFixture : IAsyncLifetime
         _api = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.ConfigureAppConfiguration((_, configuracao) =>
-                configuracao.AddInMemoryCollection(ConfiguracaoDeTeste.Minima(_postgres.GetConnectionString())));
+                configuracao.AddInMemoryCollection(ConfiguracaoDeTesteTests.Minima(_postgres.GetConnectionString())));
             builder.ConfigureTestServices(servicos =>
                 servicos.Configure<GoogleOptions>(
                     GoogleDefaults.AuthenticationScheme, google => google.BackchannelHttpHandler = Google));
         });
 
         await using var escopo = NovoEscopo(out var db);
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(TestContext.Current.CancellationToken);
     }
 
-    public Navegador NovoNavegador() => new(Api);
+    // A mesma API, com a configuração trocada, como outro banco.
+    public WebApplicationFactory<Program> ApiCom(params (string Chave, string? Valor)[] ajustes) =>
+        Api.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, configuracao) =>
+            configuracao.AddInMemoryCollection(ajustes.Select(ajuste => KeyValuePair.Create(ajuste.Chave, ajuste.Valor)))));
+
+    // Um banco novo no mesmo Postgres. O MigrateAsync de quem usar cria o banco.
+    public string ConexaoComOutroBanco() =>
+        new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString()) { Database = $"outro_{Guid.NewGuid():N}" }.ConnectionString;
+
+    public NavegadorTests NovoNavegador() => new(Api);
 
     // Um escopo por uso, como uma requisição da API. Quem chama descarta o escopo.
     public AsyncServiceScope NovoEscopo(out AppDbContext db)
@@ -68,5 +77,6 @@ public sealed class PostgresFixture : IAsyncLifetime
         }
 
         await _postgres.DisposeAsync();
+
     }
 }

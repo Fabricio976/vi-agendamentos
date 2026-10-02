@@ -9,12 +9,12 @@ namespace ViAgendamentos.Api.Tests.Data;
 public sealed record ContaGoogle(string Id, string Email, bool EmailVerificado, string Nome)
 {
     public static ContaGoogle Nova(string? email = null, bool emailVerificado = true) =>
-        new(Guid.NewGuid().ToString("N"), email ?? Cadastros.EmailUnico(), emailVerificado, "Pessoa do Google");
+        new(Guid.NewGuid().ToString("N"), email ?? CadastrosTests.EmailUnico(), emailVerificado, "Pessoa do Google");
 }
 
 // Faz o papel dos servidores do Google: o handler do ASP.NET Core troca o código pelo token e busca o perfil
 // por este HttpMessageHandler, sem sair da máquina. Qualquer outra chamada lança.
-public sealed class GoogleFalso : HttpMessageHandler
+public sealed class GoogleFalsoTests : HttpMessageHandler
 {
     private readonly ConcurrentDictionary<string, ContaGoogle> _contas = new();
 

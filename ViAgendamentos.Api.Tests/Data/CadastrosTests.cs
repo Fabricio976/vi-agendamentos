@@ -6,7 +6,7 @@ using ViAgendamentos.Api.Usuarios;
 namespace ViAgendamentos.Api.Tests.Data;
 
 // Dados únicos por teste: a suíte roda em paralelo sobre o mesmo banco.
-public static class Cadastros
+public static class CadastrosTests
 {
     public static string SlugUnico() => $"salao-{Guid.NewGuid():N}";
 
@@ -29,11 +29,12 @@ public static class Cadastros
     }
 
     // Apaga num escopo novo, sem os dependentes carregados: quem decide o que acontece com eles é o banco.
-    public static async Task ApagarSalaoAsync(PostgresFixture banco, Guid salaoId)
+    public static async Task ApagarAsync<TEntidade>(PostgresFixtureTests banco, Guid id) where TEntidade : class
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await db.Saloes.SingleAsync(s => s.Id == salaoId, TestContext.Current.CancellationToken);
-        db.Saloes.Remove(salao);
+        var entidade = await db.Set<TEntidade>().FindAsync([id], TestContext.Current.CancellationToken)
+            ?? throw new InvalidOperationException($"Nada para apagar: {typeof(TEntidade).Name} {id} não existe.");
+        db.Remove(entidade);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 }

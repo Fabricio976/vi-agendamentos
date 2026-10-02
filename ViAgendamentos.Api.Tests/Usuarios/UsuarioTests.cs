@@ -2,7 +2,7 @@ using ViAgendamentos.Api.Tests.Data;
 
 namespace ViAgendamentos.Api.Tests.Usuarios;
 
-public class UsuarioTests(PostgresFixture banco)
+public class UsuarioTests(PostgresFixtureTests banco)
 {
     [Fact]
     public async Task Tabela_usuarios_tem_colunas_em_snake_case()

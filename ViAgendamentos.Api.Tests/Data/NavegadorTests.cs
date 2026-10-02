@@ -8,18 +8,23 @@ namespace ViAgendamentos.Api.Tests.Data;
 
 // Um navegador de teste: guarda os cookies e não segue redirecionamento, para o teste ver cada passo.
 // Fala https porque os cookies do login são Secure e não viajam em http.
-public sealed class Navegador : IDisposable
+public sealed class NavegadorTests : IDisposable
 {
     public static readonly Uri Endereco = new("https://localhost");
     public static readonly string CookieDaSessao = $".AspNetCore.{IdentityConstants.ApplicationScheme}";
 
-    public Navegador(WebApplicationFactory<Program> api) =>
-        Http = api.CreateDefaultClient(Endereco, new CookieContainerHandler(Cookies));
+    // Os intermediários ficam entre os cookies do navegador e a API, como um proxy no caminho.
+    public NavegadorTests(WebApplicationFactory<Program> api, params DelegatingHandler[] intermediarios) =>
+        Http = api.CreateDefaultClient(Endereco, [new CookieContainerHandler(Cookies), .. intermediarios]);
 
     public CookieContainer Cookies { get; } = new();
     public HttpClient Http { get; }
 
     public string? Cookie(string nome) => Cookies.GetCookies(Endereco)[nome]?.Value;
+
+    // Leva a sessão aberta em outro navegador, como o mesmo celular falando com outra instância da API.
+    public void CopiarSessaoDe(NavegadorTests outro) =>
+        Cookies.Add(Endereco, new Cookie(CookieDaSessao, outro.Cookie(CookieDaSessao)));
 
     // Pede o login à API e devolve o state que ela mandou ao Google, que o Google devolve na volta.
     public async Task<string> IrAoGoogleAsync(string returnUrl = "/")
@@ -31,7 +36,7 @@ public sealed class Navegador : IDisposable
 
     // O caminho inteiro: a API manda ao Google, o Google volta com o código e a API conclui o login.
     // Devolve a última resposta da API, o redirecionamento para a tela do front.
-    public async Task<HttpResponseMessage> EntrarComGoogleAsync(GoogleFalso google, ContaGoogle conta, string returnUrl = "/")
+    public async Task<HttpResponseMessage> EntrarComGoogleAsync(GoogleFalsoTests google, ContaGoogle conta, string returnUrl = "/")
     {
         var state = await IrAoGoogleAsync(returnUrl);
         var volta = await Http.GetAsync(

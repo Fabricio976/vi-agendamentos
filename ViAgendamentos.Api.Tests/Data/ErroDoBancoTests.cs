@@ -3,7 +3,7 @@ using Npgsql;
 
 namespace ViAgendamentos.Api.Tests.Data;
 
-public static class ErroDoBanco
+public static class ErroDoBancoTests
 {
     // Confere o código e o nome da restrição: um erro qualquer do banco não prova a regra.
     public static async Task RestricaoVioladaAsync(Func<Task> gravar, string sqlState, string restricao)

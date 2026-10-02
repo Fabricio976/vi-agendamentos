@@ -4,7 +4,7 @@ using ViAgendamentos.Api.Tests.Data;
 
 namespace ViAgendamentos.Api.Tests.Saloes;
 
-public class SalaoTests(PostgresFixture banco)
+public class SalaoTests(PostgresFixtureTests banco)
 {
     [Fact]
     public async Task Tabela_saloes_tem_colunas_em_snake_case()
@@ -18,11 +18,11 @@ public class SalaoTests(PostgresFixture banco)
     public async Task Slug_repetido_e_recusado()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var primeiro = await Cadastros.SalaoAsync(db);
+        var primeiro = await CadastrosTests.SalaoAsync(db);
 
         db.Saloes.Add(new Salao { Nome = "Outro salão", Slug = primeiro.Slug });
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.UniqueViolation,
             "uq_saloes_slug");
@@ -36,9 +36,9 @@ public class SalaoTests(PostgresFixture banco)
     public async Task Phone_fora_do_formato_e_recusado(string phone)
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        db.Saloes.Add(new Salao { Nome = "Salão", Slug = Cadastros.SlugUnico(), Phone = phone });
+        db.Saloes.Add(new Salao { Nome = "Salão", Slug = CadastrosTests.SlugUnico(), Phone = phone });
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.CheckViolation,
             "ck_saloes_phone");
@@ -52,7 +52,7 @@ public class SalaoTests(PostgresFixture banco)
     public async Task Phone_no_formato_ou_vazio_e_aceito(string? phone)
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        db.Saloes.Add(new Salao { Nome = "Salão", Slug = Cadastros.SlugUnico(), Phone = phone });
+        db.Saloes.Add(new Salao { Nome = "Salão", Slug = CadastrosTests.SlugUnico(), Phone = phone });
 
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }

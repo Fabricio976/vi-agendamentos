@@ -1,10 +1,12 @@
 using Npgsql;
 using ViAgendamentos.Api.Clientes;
+using ViAgendamentos.Api.Saloes;
 using ViAgendamentos.Api.Tests.Data;
+using ViAgendamentos.Api.Usuarios;
 
 namespace ViAgendamentos.Api.Tests.Clientes;
 
-public class ClienteTests(PostgresFixture banco)
+public class ClienteTests(PostgresFixtureTests banco)
 {
     private const string PhoneValido = "5511987654321";
 
@@ -21,10 +23,10 @@ public class ClienteTests(PostgresFixture banco)
     public async Task Cliente_da_profissional_so_com_nome_e_cliente_do_link_completa_sao_aceitas()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
         db.Clientes.AddRange(
             new Cliente { SalaoId = salao.Id, Nome = "Dona Rosa", CriadaPor = Origem.Profissional },
-            new Cliente { SalaoId = salao.Id, Nome = "Ana", CriadaPor = Origem.Link, Email = Cadastros.EmailUnico(), Phone = PhoneValido });
+            new Cliente { SalaoId = salao.Id, Nome = "Ana", CriadaPor = Origem.Link, Email = CadastrosTests.EmailUnico(), Phone = PhoneValido });
 
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -35,17 +37,17 @@ public class ClienteTests(PostgresFixture banco)
     public async Task Cliente_do_link_sem_email_ou_sem_phone_e_recusada(bool temEmail, bool temPhone)
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
         db.Clientes.Add(new Cliente
         {
             SalaoId = salao.Id,
             Nome = "Ana",
             CriadaPor = Origem.Link,
-            Email = temEmail ? Cadastros.EmailUnico() : null,
+            Email = temEmail ? CadastrosTests.EmailUnico() : null,
             Phone = temPhone ? PhoneValido : null,
         });
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.CheckViolation,
             "ck_clientes_link_exige_email_e_phone");
@@ -55,10 +57,10 @@ public class ClienteTests(PostgresFixture banco)
     public async Task Phone_fora_do_formato_e_recusado()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
         db.Clientes.Add(new Cliente { SalaoId = salao.Id, Nome = "Ana", CriadaPor = Origem.Profissional, Phone = "11987654321" });
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.CheckViolation,
             "ck_clientes_phone");
@@ -68,9 +70,9 @@ public class ClienteTests(PostgresFixture banco)
     public async Task Mesmo_email_no_mesmo_salao_e_recusado()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
-        var outroSalao = await Cadastros.SalaoAsync(db);
-        var email = Cadastros.EmailUnico();
+        var salao = await CadastrosTests.SalaoAsync(db);
+        var outroSalao = await CadastrosTests.SalaoAsync(db);
+        var email = CadastrosTests.EmailUnico();
 
         // Controles positivos: o mesmo e-mail em outro salão, e duas clientes sem e-mail no mesmo salão.
         db.Clientes.AddRange(
@@ -82,7 +84,7 @@ public class ClienteTests(PostgresFixture banco)
 
         db.Clientes.Add(new Cliente { SalaoId = salao.Id, Nome = "Outra Ana", Email = email, CriadaPor = Origem.Profissional });
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.UniqueViolation,
             "uq_clientes_salao_email");
@@ -92,10 +94,10 @@ public class ClienteTests(PostgresFixture banco)
     public async Task Email_com_maiuscula_e_recusado()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
         db.Clientes.Add(new Cliente { SalaoId = salao.Id, Nome = "Ana", Email = "Ana@Teste.com", CriadaPor = Origem.Profissional });
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.CheckViolation,
             "ck_clientes_email_minusculo");
@@ -108,10 +110,10 @@ public class ClienteTests(PostgresFixture banco)
     public async Task Email_vazio_ou_com_espaco_nas_pontas_e_recusado(string email)
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
         db.Clientes.Add(new Cliente { SalaoId = salao.Id, Nome = "Ana", Email = email, CriadaPor = Origem.Profissional });
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.CheckViolation,
             "ck_clientes_email_preenchido");
@@ -123,10 +125,10 @@ public class ClienteTests(PostgresFixture banco)
     public async Task Nome_vazio_e_recusado(string nome)
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
         db.Clientes.Add(new Cliente { SalaoId = salao.Id, Nome = nome, CriadaPor = Origem.Profissional });
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.CheckViolation,
             "ck_clientes_nome_preenchido");
@@ -136,23 +138,38 @@ public class ClienteTests(PostgresFixture banco)
     public async Task Salao_com_cliente_nao_e_apagado()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var comCliente = await Cadastros.SalaoAsync(db);
+        var comCliente = await CadastrosTests.SalaoAsync(db);
         db.Clientes.Add(new Cliente { SalaoId = comCliente.Id, Nome = "Dona Rosa", CriadaPor = Origem.Profissional });
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        await ErroDoBanco.RestricaoVioladaAsync(
-            () => Cadastros.ApagarSalaoAsync(banco, comCliente.Id),
+        await ErroDoBancoTests.RestricaoVioladaAsync(
+            () => CadastrosTests.ApagarAsync<Salao>(banco, comCliente.Id),
             PostgresErrorCodes.ForeignKeyViolation,
             "fk_clientes_salao");
+    }
+
+    [Fact]
+    public async Task Usuario_ligado_a_uma_cliente_nao_e_apagado()
+    {
+        await using var escopo = banco.NovoEscopo(out var db);
+        var salao = await CadastrosTests.SalaoAsync(db);
+        var usuario = await CadastrosTests.UsuarioAsync(db);
+        db.Clientes.Add(new Cliente { SalaoId = salao.Id, Nome = "Dona Rosa", CriadaPor = Origem.Profissional, UsuarioId = usuario.Id });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await ErroDoBancoTests.RestricaoVioladaAsync(
+            () => CadastrosTests.ApagarAsync<Usuario>(banco, usuario.Id),
+            PostgresErrorCodes.ForeignKeyViolation,
+            "fk_clientes_usuario");
     }
 
     [Fact]
     public async Task Mesmo_usuario_duas_vezes_no_mesmo_salao_e_recusado()
     {
         await using var escopo = banco.NovoEscopo(out var db);
-        var salao = await Cadastros.SalaoAsync(db);
-        var outroSalao = await Cadastros.SalaoAsync(db);
-        var usuario = await Cadastros.UsuarioAsync(db);
+        var salao = await CadastrosTests.SalaoAsync(db);
+        var outroSalao = await CadastrosTests.SalaoAsync(db);
+        var usuario = await CadastrosTests.UsuarioAsync(db);
 
         // Controle positivo: o mesmo usuário em outro salão é permitido.
         db.Clientes.AddRange(
@@ -162,7 +179,7 @@ public class ClienteTests(PostgresFixture banco)
 
         db.Clientes.Add(new Cliente { SalaoId = salao.Id, Nome = "Ana de novo", CriadaPor = Origem.Profissional, UsuarioId = usuario.Id });
 
-        await ErroDoBanco.RestricaoVioladaAsync(
+        await ErroDoBancoTests.RestricaoVioladaAsync(
             () => db.SaveChangesAsync(TestContext.Current.CancellationToken),
             PostgresErrorCodes.UniqueViolation,
             "uq_clientes_salao_usuario");

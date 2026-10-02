@@ -25,7 +25,7 @@ public class HealthTests
 
             builder.ConfigureAppConfiguration((_, configuracao) =>
             {
-                var valores = ConfiguracaoDeTeste.Minima(ConexaoNaoUsada);
+                var valores = ConfiguracaoDeTesteTests.Minima(ConexaoNaoUsada);
                 foreach (var (chave, valor) in ajustes)
                 {
                     valores[chave] = valor;
