@@ -45,6 +45,24 @@ public sealed class NavegadorTests : IDisposable
         return await Http.GetAsync(volta.Headers.Location, Cancelamento);
     }
 
+    // Pede a conexão da agenda à API e devolve o state que ela mandou ao Google.
+    public async Task<string> IrAoGoogleAgendaAsync(Guid salaoId, Guid profissionalId)
+    {
+        var ida = await Http.GetAsync($"/api/saloes/{salaoId}/profissionais/{profissionalId}/google/conectar", Cancelamento);
+        Assert.Equal(HttpStatusCode.Redirect, ida.StatusCode);
+        return QueryHelpers.ParseQuery(ida.Headers.Location!.Query)["state"].ToString();
+    }
+
+    public Task<HttpResponseMessage> VoltarDoGoogleAgendaAsync(string query) =>
+        Http.GetAsync($"/api/google/agenda/callback?{query}", Cancelamento);
+
+    // O caminho inteiro da conexão. Devolve a volta da API, o redirecionamento para a tela da conexão.
+    public async Task<HttpResponseMessage> ConectarGoogleAgendaAsync(GoogleAgendaFalsoTests google, Guid salaoId, Guid profissionalId, ContaDaAgenda conta)
+    {
+        var state = await IrAoGoogleAgendaAsync(salaoId, profissionalId);
+        return await VoltarDoGoogleAgendaAsync($"code={google.CodigoPara(conta)}&state={Uri.EscapeDataString(state)}");
+    }
+
     public void Dispose() => Http.Dispose();
 
     private static CancellationToken Cancelamento => TestContext.Current.CancellationToken;

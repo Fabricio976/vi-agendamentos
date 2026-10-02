@@ -297,10 +297,6 @@ namespace ViAgendamentos.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("nome");
 
-                    b.Property<string>("Phone")
-                        .HasColumnType("text")
-                        .HasColumnName("phone");
-
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasColumnType("text")
@@ -313,10 +309,7 @@ namespace ViAgendamentos.Api.Data.Migrations
                         .IsUnique()
                         .HasDatabaseName("uq_saloes_slug");
 
-                    b.ToTable("saloes", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_saloes_phone", "phone ~ '^55[1-9]{2}[0-9]{8,9}$'");
-                        });
+                    b.ToTable("saloes", (string)null);
                 });
 
             modelBuilder.Entity("ViAgendamentos.Api.Usuarios.Usuario", b =>

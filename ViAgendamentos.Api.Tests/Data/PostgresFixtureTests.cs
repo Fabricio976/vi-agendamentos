@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using ViAgendamentos.Api.Data;
+using ViAgendamentos.Api.GoogleAgenda;
 
 [assembly: AssemblyFixture(typeof(ViAgendamentos.Api.Tests.Data.PostgresFixtureTests))]
 
@@ -21,6 +22,9 @@ public sealed class PostgresFixtureTests : IAsyncLifetime
     // O Google da suíte: toda instância da API derivada desta fala com ele.
     public GoogleFalsoTests Google { get; } = new();
 
+    // O Google Agenda da suíte, no lugar do handler do cliente nomeado que a biblioteca do Google usa.
+    public GoogleAgendaFalsoTests GoogleAgenda { get; } = new();
+
     // A API com a configuração real, apontando para o contêiner dos testes.
     public WebApplicationFactory<Program> Api =>
         _api ?? throw new InvalidOperationException("O fixture ainda não subiu o banco.");
@@ -34,8 +38,11 @@ public sealed class PostgresFixtureTests : IAsyncLifetime
             builder.ConfigureAppConfiguration((_, configuracao) =>
                 configuracao.AddInMemoryCollection(ConfiguracaoDeTesteTests.Minima(_postgres.GetConnectionString())));
             builder.ConfigureTestServices(servicos =>
+            {
                 servicos.Configure<GoogleOptions>(
-                    GoogleDefaults.AuthenticationScheme, google => google.BackchannelHttpHandler = Google));
+                    GoogleDefaults.AuthenticationScheme, google => google.BackchannelHttpHandler = Google);
+                servicos.AddHttpClient(GoogleAgendaSetup.HttpClientDaAgenda).ConfigurePrimaryHttpMessageHandler(() => GoogleAgenda);
+            });
         });
 
         await using var escopo = NovoEscopo(out var db);

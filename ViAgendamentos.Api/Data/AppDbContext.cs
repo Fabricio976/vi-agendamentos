@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ViAgendamentos.Api.Clientes;
+using ViAgendamentos.Api.GoogleAgenda;
 using ViAgendamentos.Api.Saloes;
 using ViAgendamentos.Api.Usuarios;
 
@@ -15,6 +16,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Salao> Saloes => Set<Salao>();
     public DbSet<Profissional> Profissionais => Set<Profissional>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<ConexaoGoogle> ConexoesGoogle => Set<ConexaoGoogle>();
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

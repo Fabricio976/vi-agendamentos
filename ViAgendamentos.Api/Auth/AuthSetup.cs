@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
@@ -49,12 +50,8 @@ public static class AuthSetup
         servicos.ConfigureApplicationCookie(cookie =>
         {
             cookie.ExpireTimeSpan = TimeSpan.FromDays(30);
-            // A API não tem tela de login. O .NET 10 já responde 401 nas rotas que devolvem JSON ou TypedResults, e isto vale para as demais, como uma rota que não existe ou uma que devolve string.
-            cookie.Events.OnRedirectToLogin = contexto =>
-            {
-                contexto.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return Task.CompletedTask;
-            };
+            cookie.Events.OnRedirectToLogin = ResponderSemRedirecionar(StatusCodes.Status401Unauthorized);
+            cookie.Events.OnRedirectToAccessDenied = ResponderSemRedirecionar(StatusCodes.Status403Forbidden);
         });
         // O cookie externo nasce no handler do Google, antes do app.UseCookiePolicy, então o Secure vai nele mesmo.
         servicos.ConfigureExternalCookie(cookie => cookie.Cookie.SecurePolicy = CookieSecurePolicy.Always);
@@ -70,10 +67,18 @@ public static class AuthSetup
 
         // Toda rota exige sessão, salvo as marcadas com AllowAnonymous: rota nova esquecida responde 401 e não vaza nada.
         servicos.AddAuthorizationBuilder()
-            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+            .AddPoliticasDoSalao();
 
         return servicos;
     }
+
+    private static Func<RedirectContext<CookieAuthenticationOptions>, Task> ResponderSemRedirecionar(int status) => contexto =>
+    {
+        contexto.Response.StatusCode = status;
+        return Task.CompletedTask;
+    };
+
     private static Task VoltarParaEntrar(HandleRequestContext<RemoteAuthenticationOptions> contexto, string motivo)
     {
         contexto.Response.Redirect(AuthEndpoints.TelaDeEntrar(motivo));

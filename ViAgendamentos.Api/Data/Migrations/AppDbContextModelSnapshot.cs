@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ViAgendamentos.Api.Clientes;
 using ViAgendamentos.Api.Data;
+using ViAgendamentos.Api.GoogleAgenda;
 using ViAgendamentos.Api.Saloes;
 
 #nullable disable
@@ -24,6 +25,7 @@ namespace ViAgendamentos.Api.Data.Migrations
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "origem", new[] { "link", "profissional" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "role", new[] { "dona", "funcionaria" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "status_conexao", new[] { "ativa", "revogada" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
@@ -194,6 +196,49 @@ namespace ViAgendamentos.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ViAgendamentos.Api.GoogleAgenda.ConexaoGoogle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ConectadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("conectado_em");
+
+                    b.Property<string>("GoogleEmail")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("google_email");
+
+                    b.Property<Guid>("ProfissionalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profissional_id");
+
+                    b.Property<byte[]>("RefreshTokenCifrado")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("refresh_token_cifrado");
+
+                    b.Property<StatusConexao>("Status")
+                        .HasColumnType("status_conexao")
+                        .HasColumnName("status");
+
+                    b.Property<string>("UltimoErro")
+                        .HasColumnType("text")
+                        .HasColumnName("ultimo_erro");
+
+                    b.HasKey("Id")
+                        .HasName("pk_conexoes_google");
+
+                    b.HasIndex("ProfissionalId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_conexoes_google_profissional");
+
+                    b.ToTable("conexoes_google", (string)null);
+                });
+
             modelBuilder.Entity("ViAgendamentos.Api.Saloes.Profissional", b =>
                 {
                     b.Property<Guid>("Id")
@@ -294,10 +339,6 @@ namespace ViAgendamentos.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("nome");
 
-                    b.Property<string>("Phone")
-                        .HasColumnType("text")
-                        .HasColumnName("phone");
-
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasColumnType("text")
@@ -310,10 +351,7 @@ namespace ViAgendamentos.Api.Data.Migrations
                         .IsUnique()
                         .HasDatabaseName("uq_saloes_slug");
 
-                    b.ToTable("saloes", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_saloes_phone", "phone ~ '^55[1-9]{2}[0-9]{8,9}$'");
-                        });
+                    b.ToTable("saloes", (string)null);
                 });
 
             modelBuilder.Entity("ViAgendamentos.Api.Usuarios.Usuario", b =>
@@ -446,6 +484,16 @@ namespace ViAgendamentos.Api.Data.Migrations
                         .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_clientes_usuario");
+                });
+
+            modelBuilder.Entity("ViAgendamentos.Api.GoogleAgenda.ConexaoGoogle", b =>
+                {
+                    b.HasOne("ViAgendamentos.Api.Saloes.Profissional", null)
+                        .WithOne()
+                        .HasForeignKey("ViAgendamentos.Api.GoogleAgenda.ConexaoGoogle", "ProfissionalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_conexoes_google_profissional");
                 });
 
             modelBuilder.Entity("ViAgendamentos.Api.Saloes.Profissional", b =>

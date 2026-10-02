@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace ViAgendamentos.Api.Tests.Data;
 
 // O mínimo que a API exige para subir. Cada teste acrescenta ou troca o que precisa.
@@ -8,5 +10,6 @@ public static class ConfiguracaoDeTesteTests
         ["ConnectionStrings:Default"] = conexao,
         ["Authentication:Google:ClientId"] = "cliente-de-teste",
         ["Authentication:Google:ClientSecret"] = "segredo-de-teste",
+        ["GoogleAgenda:ChaveDoToken"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)),
     };
 }

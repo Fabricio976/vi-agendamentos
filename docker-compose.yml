@@ -29,6 +29,7 @@ services:
       ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:?crie o cliente OAuth do Google e preencha o .env}
       Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:?crie o cliente OAuth do Google e preencha o .env}
+      GoogleAgenda__ChaveDoToken: ${GOOGLE_AGENDA_CHAVE:?gere a chave do token do Google Agenda e preencha o .env}
     volumes:
       - .:/src
       - api-bin:/src/ViAgendamentos.Api/bin

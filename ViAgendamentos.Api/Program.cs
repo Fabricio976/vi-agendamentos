@@ -6,6 +6,7 @@ using ViAgendamentos.Api;
 using ViAgendamentos.Api.Auth;
 using ViAgendamentos.Api.Clientes;
 using ViAgendamentos.Api.Data;
+using ViAgendamentos.Api.GoogleAgenda;
 using ViAgendamentos.Api.Health;
 using ViAgendamentos.Api.Saloes;
 
@@ -31,10 +32,11 @@ builder.Services
 builder.Services.AddDbContext<AppDbContext>((servicos, opcoes) => opcoes
     .UseNpgsql(
         servicos.GetRequiredService<IOptions<DatabaseOptions>>().Value.Default,
-        npgsql => npgsql.MapEnum<Role>("role").MapEnum<Origem>("origem"))
+        npgsql => npgsql.MapEnum<Role>("role").MapEnum<Origem>("origem").MapEnum<StatusConexao>("status_conexao"))
     .UseSnakeCaseNamingConvention());
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
 builder.Services.AddAuth();
+builder.Services.AddGoogleAgenda();
 
 var app = builder.Build();
 
@@ -51,11 +53,14 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi().AllowAnonymous();
 }
 
-app.MapGroup("/api")
+var api = app.MapGroup("/api")
     .AddEndpointFilter(AuthEndpoints.ExigirAntifalsificacao)
     .MapHealth()
     .MapAuth()
-    .MapSaloes();
+    .MapSaloes()
+    .MapVoltaDoGoogleAgenda();
+api.MapSalao()
+    .MapConexaoGoogle();
 app.MapHealthChecks("/api/health/db").AllowAnonymous();
 
 app.Run();
