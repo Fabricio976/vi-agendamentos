@@ -162,6 +162,30 @@ public class ConectarGoogleTests(PostgresFixtureTests banco)
     }
 
     [Fact]
+    public async Task Erro_do_google_na_volta_aparece_como_erro_e_nao_como_desistencia()
+    {
+        using var logada = await CadastrosTests.ProfissionalLogadaAsync(banco);
+        var state = await logada.Navegador.IrAoGoogleAgendaAsync(logada.Salao.Id, logada.Profissional.Id);
+
+        var volta = await logada.Navegador.VoltarDoGoogleAgendaAsync($"error=server_error&state={Uri.EscapeDataString(state)}");
+
+        Assert.Equal(Tela(logada, "erro"), Volta(volta));
+        Assert.Null(await ConexaoAsync(logada.Profissional.Id));
+    }
+
+    [Fact]
+    public async Task Codigo_recusado_pelo_google_volta_para_a_tela_com_erro()
+    {
+        using var logada = await CadastrosTests.ProfissionalLogadaAsync(banco);
+        var state = await logada.Navegador.IrAoGoogleAgendaAsync(logada.Salao.Id, logada.Profissional.Id);
+
+        var volta = await logada.Navegador.VoltarDoGoogleAgendaAsync($"code=codigo-vencido&state={Uri.EscapeDataString(state)}");
+
+        Assert.Equal(Tela(logada, "erro"), Volta(volta));
+        Assert.Null(await ConexaoAsync(logada.Profissional.Id));
+    }
+
+    [Fact]
     public async Task Google_sem_refresh_token_na_resposta_nao_conecta_e_avisa()
     {
         using var logada = await CadastrosTests.ProfissionalLogadaAsync(banco);

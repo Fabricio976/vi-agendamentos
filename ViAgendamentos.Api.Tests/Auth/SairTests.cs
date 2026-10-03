@@ -20,10 +20,8 @@ public class SairTests(PostgresFixtureTests banco)
     public async Task Sair_com_o_cabecalho_antifalsificacao_encerra_a_sessao()
     {
         using var navegador = await LogadoAsync();
-        var sair = new HttpRequestMessage(HttpMethod.Post, "/api/auth/logout");
-        sair.Headers.Add("X-XSRF-TOKEN", navegador.Cookie("XSRF-TOKEN"));
 
-        var resposta = await navegador.Http.SendAsync(sair, Cancelamento);
+        var resposta = await navegador.PostarAsync("/api/auth/logout");
 
         Assert.Equal(HttpStatusCode.NoContent, resposta.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await navegador.Http.GetAsync("/api/auth/me", Cancelamento)).StatusCode);

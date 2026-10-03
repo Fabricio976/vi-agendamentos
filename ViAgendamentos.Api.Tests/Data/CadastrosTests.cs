@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using ViAgendamentos.Api.Agenda;
 using ViAgendamentos.Api.Data;
+using ViAgendamentos.Api.GoogleAgenda;
 using ViAgendamentos.Api.Saloes;
 using ViAgendamentos.Api.Usuarios;
 
@@ -36,6 +39,14 @@ public static class CadastrosTests
         return profissional;
     }
 
+    public static async Task<Servico> ServicoAsync(AppDbContext db, Guid profissionalId)
+    {
+        var servico = new Servico { ProfissionalId = profissionalId, Nome = "Corte", DuracaoMinutos = 60 };
+        db.Servicos.Add(servico);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return servico;
+    }
+
     // Dona de um salão novo, com a sessão aberta pelo login com Google, que liga a profissional pelo e-mail.
     public static async Task<ProfissionalLogada> ProfissionalLogadaAsync(PostgresFixtureTests banco)
     {
@@ -50,6 +61,20 @@ public static class CadastrosTests
         var navegador = banco.NovoNavegador();
         await navegador.EntrarComGoogleAsync(banco.Google, ContaGoogle.Nova(profissional.Email));
         return new ProfissionalLogada(navegador, salao, profissional);
+    }
+
+    // Uma profissional com a agenda conectada, gravada direto no banco, sem passar pela volta do Google.
+    public static async Task<Profissional> ProfissionalConectadaAsync(PostgresFixtureTests banco, ContaDaAgenda conta)
+    {
+        banco.GoogleAgenda.Registrar(conta);
+        await using var escopo = banco.NovoEscopo(out var db);
+        var salao = await SalaoAsync(db);
+        var profissional = await ProfissionalAsync(db, salao.Id);
+        var conexao = new ConexaoGoogle { ProfissionalId = profissional.Id };
+        conexao.Conectar(conta.Email, escopo.ServiceProvider.GetRequiredService<CifraDoToken>().Cifrar(conta.RefreshToken), DateTimeOffset.UtcNow);
+        db.ConexoesGoogle.Add(conexao);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return profissional;
     }
 
     // Apaga num escopo novo, sem os dependentes carregados: quem decide o que acontece com eles é o banco.

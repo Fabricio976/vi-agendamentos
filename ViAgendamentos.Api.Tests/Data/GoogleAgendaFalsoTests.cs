@@ -1,5 +1,6 @@
 using System.Buffers.Text;
 using System.Collections.Concurrent;
+using System.IO.Compression;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -168,7 +169,7 @@ public sealed class GoogleAgendaFalsoTests : HttpMessageHandler
 
         if (pedido.Method == HttpMethod.Patch)
         {
-            // PATCH só troca o que veio: o evento de teste muda só o título.
+            // PATCH só troca o que veio: o evento da verificação muda só o título.
             evento.Summary = (await LerEventoAsync(pedido, cancelamento)).Summary ?? evento.Summary;
             return Json(evento);
         }
@@ -202,8 +203,13 @@ public sealed class GoogleAgendaFalsoTests : HttpMessageHandler
         Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(new { iss = "https://accounts.google.com", email, email_verified = true })),
         "assinatura");
 
-    private static async Task<Event> LerEventoAsync(HttpRequestMessage pedido, CancellationToken cancelamento) =>
-        NewtonsoftJsonSerializer.Instance.Deserialize<Event>(await pedido.Content!.ReadAsStringAsync(cancelamento));
+    // A biblioteca do Google comprime o corpo em gzip (o GZipEnabled vem ligado), e o Google descomprime.
+    private static async Task<Event> LerEventoAsync(HttpRequestMessage pedido, CancellationToken cancelamento)
+    {
+        var corpo = await pedido.Content!.ReadAsStreamAsync(cancelamento);
+        await using var json = pedido.Content.Headers.ContentEncoding.Contains("gzip") ? new GZipStream(corpo, CompressionMode.Decompress) : corpo;
+        return NewtonsoftJsonSerializer.Instance.Deserialize<Event>(json);
+    }
 
     private static HttpResponseMessage ErroDoToken(HttpStatusCode status, string erro, string? descricao = null) =>
         Json(new { error = erro, error_description = descricao }, status);

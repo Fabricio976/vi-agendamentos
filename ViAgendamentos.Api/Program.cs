@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ViAgendamentos.Api;
+using ViAgendamentos.Api.Agenda;
 using ViAgendamentos.Api.Auth;
 using ViAgendamentos.Api.Clientes;
 using ViAgendamentos.Api.Data;
@@ -17,6 +18,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 // Enum sai como texto, com o mesmo rótulo do banco ("dona"), e não como número.
 builder.Services.ConfigureHttpJsonOptions(json =>
     json.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
+builder.Services.AddValidation();
 builder.Services
     .AddOptionsWithValidateOnStart<AppOptions>()
     .BindConfiguration(AppOptions.Secao)
@@ -60,7 +62,12 @@ var api = app.MapGroup("/api")
     .MapSaloes()
     .MapVoltaDoGoogleAgenda();
 api.MapSalao()
-    .MapConexaoGoogle();
+    .MapConexaoGoogle()
+    // As rotas da agenda usam a profissional da rota, e não a da sessão: para a dona cuidar da agenda das outras,
+    // basta trocar esta política.
+    .MapGroup("/profissionais/{profissionalId:guid}")
+    .RequireAuthorization(Politicas.PropriaProfissional)
+    .MapServicos();
 app.MapHealthChecks("/api/health/db").AllowAnonymous();
 
 app.Run();

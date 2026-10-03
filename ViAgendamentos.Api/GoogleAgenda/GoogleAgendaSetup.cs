@@ -55,6 +55,7 @@ public static class GoogleAgendaSetup
         });
         servicos.AddSingleton<StateDaConexao>();
         servicos.AddScoped<VoltaDoGoogle>();
+        servicos.AddScoped<AgendaGoogle>();
         return servicos;
     }
 }

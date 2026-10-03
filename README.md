@@ -51,6 +51,32 @@ O Client ID e o Client secret vão no `.env`, em `GOOGLE_CLIENT_ID` e `GOOGLE_CL
 
 Abra o front por `http://localhost:4200`, e não por `127.0.0.1`: o Google só devolve a pessoa para o endereço cadastrado.
 
+## Google Agenda
+
+A profissional conecta a própria agenda pelo mesmo cliente OAuth do login, com o escopo `calendar.events.owned`. No projeto do Google Cloud:
+
+- a Google Calendar API fica ativada;
+- o cliente OAuth do ambiente local tem também o endereço de retorno `http://localhost:4200/api/google/agenda/callback`, entre as URIs de redirecionamento, e não entre as origens JavaScript;
+- em modo de teste, só conectam as contas de **Audience > Test users**, e o Google invalida o refresh token em 7 dias. Com o app "Em produção", o refresh token não vence, e a tela "app não verificado" aparece uma vez para quem conecta.
+
+A API guarda só o refresh token, cifrado com AES-256-GCM. A chave vai no `.env`, em `GOOGLE_AGENDA_CHAVE`: 32 bytes em base64, gerados no PowerShell com
+
+```powershell
+$bytes = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes); [Convert]::ToBase64String($bytes)
+```
+
+Sem a chave, ou com outro tamanho, a API não sobe. Trocar a chave invalida as conexões gravadas: cada profissional conecta de novo.
+
+Para testar a conexão com a profissional logada, abra `http://localhost:4200/api/saloes/<salão>/profissionais/<profissional>/google/conectar`, autorize, e rode no console do navegador, em `http://localhost:4200`:
+
+```js
+await fetch('/api/auth/me');
+const xsrf = document.cookie.split('; ').find(c => c.startsWith('XSRF-TOKEN=')).split('=')[1];
+await (await fetch('/api/saloes/<salão>/profissionais/<profissional>/google/verificacao', { method: 'POST', headers: { 'X-XSRF-TOKEN': decodeURIComponent(xsrf) } })).json();
+```
+
+A resposta traz cada passo (criar, alterar, listar e apagar um evento na agenda dela) com `ok` e o erro do Google, quando houver. O evento da verificação é apagado no fim, mesmo quando um passo do meio falha.
+
 ## Salão piloto
 
 O salão e a dona entram por um comando da própria API, com os dados fora do git. Com o compose no ar:

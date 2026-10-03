@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Mvc.Testing.Handlers;
@@ -25,6 +26,17 @@ public sealed class NavegadorTests : IDisposable
     // Leva a sessão aberta em outro navegador, como o mesmo celular falando com outra instância da API.
     public void CopiarSessaoDe(NavegadorTests outro) =>
         Cookies.Add(Endereco, new Cookie(CookieDaSessao, outro.Cookie(CookieDaSessao)));
+
+    // Como o front: pede a sessão, que traz o token antifalsificação, e o devolve no cabeçalho.
+    public async Task<HttpResponseMessage> EnviarAsync(HttpMethod metodo, string url, object? corpo = null)
+    {
+        Assert.Equal(HttpStatusCode.OK, (await Http.GetAsync("/api/auth/me", Cancelamento)).StatusCode);
+        using var pedido = new HttpRequestMessage(metodo, url) { Content = corpo is null ? null : JsonContent.Create(corpo) };
+        pedido.Headers.Add("X-XSRF-TOKEN", Cookie("XSRF-TOKEN"));
+        return await Http.SendAsync(pedido, Cancelamento);
+    }
+
+    public Task<HttpResponseMessage> PostarAsync(string url, object? corpo = null) => EnviarAsync(HttpMethod.Post, url, corpo);
 
     // Pede o login à API e devolve o state que ela mandou ao Google, que o Google devolve na volta.
     public async Task<string> IrAoGoogleAsync(string returnUrl = "/")
